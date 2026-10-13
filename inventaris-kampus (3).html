@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffe066">
+<title>Stok Kampus – CRUD Inventaris</title>
+<style>
+:root{
+  --ink:#14110f;--paper:#fffaf0;--card:#ffffff;--shadow:#14110f;--mut:#5b544c;
+  --y:#ffe066;--p:#ff9ecb;--b:#8ecbff;--m:#9ef0c0;--o:#ffb36b;--v:#c4b5fd;--dk:#14110f;
+  --line:rgba(70,130,200,.16);--margin:rgba(255,90,90,.32);
+}
+:root[data-theme="dark"]{
+  --ink:#f5efe3;--paper:#15131c;--card:#221f2e;--shadow:#000;--mut:#b7b0c4;
+  --line:rgba(255,255,255,.045);--margin:rgba(255,120,120,.28);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;min-height:100vh;color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-color:var(--paper);
+  background-image:linear-gradient(90deg,transparent 39px,var(--margin) 39px 41px,transparent 41px),repeating-linear-gradient(transparent 0 27px,var(--line) 27px 28px);
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(90px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+}
+.app{max-width:980px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
+.hidden{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--v);outline-offset:2px}
+.box{background:var(--card);border:2.5px solid var(--ink);border-radius:18px;box-shadow:5px 5px 0 var(--shadow)}
+.pop{transition:transform .1s,box-shadow .1s}
+.pop:hover{transform:translate(-1px,-1px);box-shadow:6px 6px 0 var(--shadow)}
+.pop:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--shadow)}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.title{margin:0;display:inline-block;padding:8px 16px;background:var(--y);color:var(--dk);border:2.5px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--shadow);font-size:1.45rem;font-weight:900;letter-spacing:-.03em;transform:rotate(-2deg)}
+.top-r{display:flex;gap:10px;align-items:center}
+.sq{width:46px;height:46px;border-radius:14px;border:2.5px solid var(--ink);background:var(--card);box-shadow:3px 3px 0 var(--shadow);font-size:1.2rem}
+.add{padding:0 18px;height:46px;border-radius:14px;border:2.5px solid var(--ink);background:var(--p);color:var(--dk);font-weight:900;box-shadow:4px 4px 0 var(--shadow)}
+.sub{margin:0;font-size:.85rem;color:var(--mut);font-weight:500}
+.sub b{color:var(--ink)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.stat{padding:14px;color:var(--dk)}
+.stat:nth-child(1){background:var(--y)}.stat:nth-child(2){background:var(--m)}.stat:nth-child(3){background:var(--p)}
+.stat span{display:block;font-size:.74rem;font-weight:800;opacity:.75}
+.stat strong{display:block;margin-top:2px;font-size:1.5rem;font-weight:900;letter-spacing:-.03em;word-break:break-word;line-height:1.15}
+
+.alert{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--o);color:var(--dk);font-weight:700;font-size:.9rem;text-align:left;width:100%}
+.alert u{text-underline-offset:3px}
+
+.two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+.chart{padding:16px;display:grid;gap:10px;align-content:start}
+.sec{margin:0;display:inline-block;justify-self:start;padding:3px 12px;background:var(--ink);color:var(--paper);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.76rem;font-weight:800;border-radius:8px;transform:rotate(-1.5deg)}
+.bar-r{display:grid;grid-template-columns:96px 1fr auto;align-items:center;gap:10px;font-size:.84rem;font-weight:700}
+.bar-r .tr{height:18px;border:2px solid var(--ink);border-radius:8px;background:var(--paper);overflow:hidden}
+.bar-r .tr i{display:block;height:100%;background:var(--c);border-right:2px solid var(--ink);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.bar-r .tr i[style*="width:0%"]{border-right:0}
+.bar-r b{font-variant-numeric:tabular-nums;min-width:2.5ch;text-align:right}
+
+.note{padding:16px;background:var(--y);color:var(--dk);position:relative;transform:rotate(1deg)}
+.note::before{content:"";position:absolute;top:-12px;left:50%;width:70px;height:22px;transform:translateX(-50%) rotate(-3deg);background:rgba(255,255,255,.6);border:1.5px solid rgba(0,0,0,.25)}
+.note h2{margin:6px 0 8px;font-size:.95rem;font-weight:900}
+.note ul{list-style:none;margin:0;padding:0;display:grid;gap:7px;font-size:.84rem;font-weight:600}
+.note li{display:flex;gap:8px;align-items:baseline;line-height:1.35}
+.note .t{flex-shrink:0;padding:0 7px;border:2px solid var(--dk);border-radius:6px;font-size:.66rem;font-weight:900;background:#fff}
+.note .t.CREATE{background:var(--m)}.note .t.UPDATE{background:var(--b)}.note .t.DELETE{background:var(--p)}
+.note small{color:rgba(0,0,0,.6);font-weight:600}
+.note .none{font-weight:600;font-size:.84rem}
+
+/* toolbar */
+.tools{display:grid;gap:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input[type=search],select,.inp{width:100%;padding:12px 14px;font:inherit;font-size:.98rem;font-weight:600;color:var(--ink);background:var(--card);border:2.5px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--shadow);outline:none;min-height:46px}
+input::placeholder{color:var(--mut);font-weight:500}
+.search{flex:1 1 220px;min-width:0}
+.row select{flex:0 1 190px;width:auto}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 6px 8px 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:7px 14px;border:2px solid var(--ink);border-radius:999px;background:var(--card);font-weight:800;font-size:.84rem;box-shadow:2px 2px 0 var(--shadow)}
+.chip[aria-pressed="true"]{background:var(--c,var(--y));color:var(--dk);transform:translate(1px,1px);box-shadow:1px 1px 0 var(--shadow)}
+
+/* kartu produk */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.pc{display:grid;overflow:hidden;animation:rise .35s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(12px) rotate(-.8deg)}}
+.strip{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--c);color:var(--dk);border-bottom:2.5px solid var(--ink);font-weight:900;font-size:.82rem}
+.strip .emo{font-size:1.25rem}.strip .cn{flex:1}.strip .id{font-family:ui-monospace,Menlo,monospace;opacity:.7}
+.pb{padding:14px;display:grid;gap:8px}
+.pb h3{margin:0;font-size:1.05rem;font-weight:900;line-height:1.25;letter-spacing:-.01em}
+.price{font-size:1.55rem;font-weight:900;letter-spacing:-.03em}
+.sup{margin:0;font-size:.8rem;color:var(--mut);font-weight:600}
+.sh{display:flex;justify-content:space-between;font-size:.8rem;font-weight:800;margin-top:2px}
+.sh .good{color:#0a7a45}.sh .warn{color:#b45309}.sh .bad{color:#c0262d}
+:root[data-theme="dark"] .sh .good{color:#6ee7a8}:root[data-theme="dark"] .sh .warn{color:#fbbf24}:root[data-theme="dark"] .sh .bad{color:#fb7185}
+.meter{height:14px;border:2px solid var(--ink);border-radius:8px;background:var(--paper);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--m);border-right:2px solid var(--ink);transition:width .3s}
+.meter.warn i{background:var(--y)}.meter.bad i{background:var(--p)}
+.meter i[style*="width:0%"]{border-right:0}
+.qs{display:flex;gap:8px;align-items:center}
+.qs .lbl{flex:1;font-size:.74rem;font-weight:800;color:var(--mut)}
+.qb{width:38px;height:38px;border-radius:10px;border:2.5px solid var(--ink);background:var(--card);font-size:1.15rem;font-weight:900;box-shadow:2px 2px 0 var(--shadow)}
+.qb:active{transform:translate(2px,2px);box-shadow:0 0 0}
+.acts{display:flex;gap:10px;margin-top:2px}
+.btn{flex:1;min-height:42px;padding:0 14px;border:2.5px solid var(--ink);border-radius:12px;font-weight:900;font-size:.88rem;background:var(--card);box-shadow:3px 3px 0 var(--shadow);color:var(--ink)}
+.btn.d{background:var(--p);color:var(--dk)}
+.btn.ok{background:var(--m);color:var(--dk)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+
+.empty{padding:34px 16px;text-align:center;display:grid;gap:8px;justify-items:center}
+.empty .big{font-size:3rem}.empty h3{margin:0;font-weight:900}.empty p{margin:0;color:var(--mut);font-size:.9rem}
+
+.pager{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.pager .btn{flex:0 0 auto;min-width:44px}
+.pager .btn.cur{background:var(--y);color:var(--dk)}
+.count{text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:.76rem;font-weight:700;color:var(--mut)}
+footer{text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:.72rem;font-weight:700;color:var(--mut)}
+.lnk{background:none;border:0;padding:0;font:inherit;text-decoration:underline;text-underline-offset:3px;color:inherit}
+
+/* dialog / bottom sheet */
+dialog{width:min(480px,calc(100vw - 24px));padding:0;border:2.5px solid var(--ink);border-radius:20px;background:var(--card);color:var(--ink);box-shadow:7px 7px 0 var(--shadow);max-height:92vh;overflow:auto}
+dialog::backdrop{background:rgba(20,17,15,.55)}
+dialog[open]{animation:up .2s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes up{from{opacity:0;transform:translateY(24px)}}
+.dh{padding:14px 18px;background:var(--y);color:var(--dk);border-bottom:2.5px solid var(--ink);font-weight:900;font-size:1.05rem}
+.dh.red{background:var(--p)}
+.db{padding:4px 18px 18px}
+label{display:block;margin:14px 0 6px;font-weight:800;font-size:.84rem}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.f2>div{min-width:0}
+.er{margin-top:5px;font-size:.78rem;font-weight:700;color:#c0262d}
+:root[data-theme="dark"] .er{color:#fb7185}
+.er:empty{display:none}
+.inp[aria-invalid="true"]{border-color:#e11d48}
+.da{display:flex;gap:10px;margin-top:20px}
+dialog p{margin:14px 0 0;line-height:1.5}
+
+/* FAB */
+.fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));width:60px;height:60px;border-radius:18px;border:2.5px solid var(--ink);background:var(--p);color:var(--dk);font-size:1.9rem;font-weight:900;box-shadow:5px 5px 0 var(--shadow);z-index:20;display:none;line-height:1}
+#toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translate(-50%,24px);opacity:0;pointer-events:none;padding:11px 16px;border:2.5px solid var(--ink);border-radius:14px;background:var(--m);color:var(--dk);font-weight:800;font-size:.9rem;box-shadow:4px 4px 0 var(--shadow);transition:.25s;z-index:60;max-width:calc(100vw - 100px);text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.err{background:var(--p)}
+
+@media (max-width:760px){
+  .two{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:1fr 1fr}.stat:nth-child(3){grid-column:1/-1}
+  .add.desk{display:none}
+  .fab{display:grid;place-items:center}
+  dialog{margin:auto 0 0;width:100%;max-width:100%;border-radius:22px 22px 0 0;border-bottom:0}
+  .row select{flex:1 1 140px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <h1 class="title">📦 Stok Kampus</h1>
+    <div class="top-r">
+      <button type="button" class="sq pop" id="theme" aria-label="Ganti tema terang/gelap">🌙</button>
+      <button type="button" class="add desk pop" id="addDesk">+ Produk</button>
+    </div>
+  </header>
+  <p class="sub">Demo CRUD Inventaris · versi asli <b>PHP + MySQL (PDO)</b>. Di sini data tersimpan di browser (localStorage).</p>
+
+  <section class="stats" id="stats" aria-label="Ringkasan"></section>
+  <button type="button" class="box alert pop hidden" id="alert"></button>
+
+  <section class="two">
+    <div class="box chart"><h2 class="sec">// STOK PER KATEGORI</h2><div id="chart"></div></div>
+    <aside class="box note" aria-label="Catatan aktivitas"><h2>📝 Log aktivitas</h2><ul id="logs"></ul></aside>
+  </section>
+
+  <section class="tools">
+    <div class="row">
+      <label class="sr" for="q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Cari produk</label>
+      <input type="search" id="q" class="search" placeholder="🔍 Cari produk, kategori, supplier…" autocomplete="off" maxlength="80">
+      <select id="sort" aria-label="Urutkan">
+        <option value="new">Terbaru</option><option value="name">Nama A–Z</option>
+        <option value="price-asc">Harga ↑</option><option value="price-desc">Harga ↓</option>
+        <option value="stock-asc">Stok ↑</option><option value="stock-desc">Stok ↓</option>
+      </select>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Filter kategori"></div>
+  </section>
+
+  <section id="grid" class="grid" aria-live="polite"></section>
+  <div class="count" id="count"></div>
+  <nav class="pager" id="pager" aria-label="Halaman"></nav>
+  <footer>Tugas Rutin 8 — Pemrograman Web · <button class="lnk" id="reset" type="button">reset data demo</button></footer>
+</main>
+
+<button type="button" class="fab pop" id="fab" aria-label="Tambah produk">+</button>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* ================= Data ================= */
+const categories = [
+  { id: 1, name: 'Laptop', color: '#8ecbff', emoji: '💻' },
+  { id: 2, name: 'Aksesoris', color: '#ffe066', emoji: '🖱️' },
+  { id: 3, name: 'Display', color: '#c4b5fd', emoji: '🖥️' },
+  { id: 4, name: 'Jaringan', color: '#9ef0c0', emoji: '📡' },
+  { id: 5, name: 'Penyimpanan', color: '#ffb36b', emoji: '💾' },
+];
+const suppliers = [
+  { id: 1, name: 'PT Maju Jaya Teknologi' }, { id: 2, name: 'CV Sumber Elektronik' },
+  { id: 3, name: 'PT Nusantara Digital' }, { id: 4, name: 'Toko Medan Komputer' }, { id: 5, name: 'PT Global Perkasa' },
+];
+const SEED = [
+  { id: 1, name: 'Laptop ASUS Vivobook 14', category_id: 1, supplier_id: 1, price: 8500000, stock: 10 },
+  { id: 2, name: 'Laptop Lenovo IdeaPad 3', category_id: 1, supplier_id: 3, price: 7900000, stock: 7 },
+  { id: 3, name: 'Mouse Wireless Logitech', category_id: 2, supplier_id: 2, price: 150000, stock: 40 },
+  { id: 4, name: 'Keyboard Mekanikal', category_id: 2, supplier_id: 2, price: 450000, stock: 25 },
+  { id: 5, name: 'Monitor LED 24 inci', category_id: 3, supplier_id: 1, price: 1750000, stock: 12 },
+  { id: 6, name: 'Router TP-Link AC1200', category_id: 4, supplier_id: 4, price: 420000, stock: 18 },
+  { id: 7, name: 'SSD NVMe 512GB', category_id: 5, supplier_id: 5, price: 680000, stock: 30 },
+  { id: 8, name: 'Flashdisk 64GB', category_id: 5, supplier_id: 4, price: 85000, stock: 6 },
+];
+const KEY = 'inv.kampus.v1';
+const THEME_KEY = 'inv.kampus.theme';
+const PER = 6;
+const LOW = 10;
+
+/* ================= Util ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rp = (n) => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+const catOf = (id) => categories.find((c) => c.id === id);
+const cat = (id) => catOf(id)?.name ?? '-';
+const sup = (id) => suppliers.find((s) => s.id === id)?.name ?? '-';
+const stamp = () => new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+/* ================= State & storage ================= */
+let db = load();
+function load() {
+  try { const r = JSON.parse(localStorage.getItem(KEY)); if (r && Array.isArray(r.products)) return r; } catch { /* abaikan */ }
+  return fresh();
+}
+function fresh() { return { products: structuredClone(SEED), nextId: SEED.length + 1, logs: [] }; }
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* storage tidak tersedia */ } }
+function log(a, d) { db.logs.unshift({ a, d, t: stamp() }); db.logs = db.logs.slice(0, 5); persist(); }
+const ui = { q: '', cat: 0, sort: 'new', page: 1 };
+
+/* ================= Render ================= */
+function filtered() {
+  const q = ui.q.trim().toLowerCase();
+  const rows = db.products.filter((p) =>
+    (!q || [p.name, cat(p.category_id), sup(p.supplier_id)].some((x) => x.toLowerCase().includes(q))) &&
+    (!ui.cat || p.category_id === ui.cat));
+  const sorters = {
+    new: (a, b) => b.id - a.id,
+    name: (a, b) => a.name.localeCompare(b.name, 'id'),
+    'price-asc': (a, b) => a.price - b.price, 'price-desc': (a, b) => b.price - a.price,
+    'stock-asc': (a, b) => a.stock - b.stock, 'stock-desc': (a, b) => b.stock - a.stock,
+  };
+  return rows.sort(sorters[ui.sort]);
+}
+
+function renderStats() {
+  const P = db.products;
+  $('#stats').innerHTML =
+    `<div class="box stat"><span>JENIS PRODUK</span><strong>${P.length}</strong></div>
+     <div class="box stat"><span>TOTAL STOK</span><strong>${P.reduce((a, p) => a + p.stock, 0)}</strong></div>
+     <div class="box stat"><span>NILAI ASET</span><strong>${rp(P.reduce((a, p) => a + p.price * p.stock, 0))}</strong></div>`;
+  const low = P.filter((p) => p.stock < LOW);
+  const al = $('#alert');
+  al.classList.toggle('hidden', !low.length);
+  if (low.length) {
+    const names = low.slice(0, 2).map((p) => p.name).join(', ');
+    al.innerHTML = `⚠️ <span>${low.length} produk stoknya menipis: ${esc(names)}${low.length > 2 ? ` +${low.length - 2} lagi` : ''}. <u>Urutkan stok terendah</u></span>`;
+  }
+}
+
+function renderChart() {
+  const sums = categories.map((c) => ({ c, v: db.products.filter((p) => p.category_id === c.id).reduce((a, p) => a + p.stock, 0) }));
+  const max = Math.max(1, ...sums.map((s) => s.v));
+  $('#chart').innerHTML = sums.map(({ c, v }) =>
+    `<div class="bar-r" style="--c:${c.color};margin-bottom:9px"><span>${c.emoji} ${esc(c.name)}</span><div class="tr"><i style="width:${Math.round((v / max) * 100)}%"></i></div><b>${v}</b></div>`).join('');
+}
+
+function renderChips() {
+  const all = [{ id: 0, name: 'Semua', color: '#ffe066' }, ...categories];
+  $('#chips').innerHTML = all.map((c) =>
+    `<button type="button" class="chip" style="--c:${c.color}" data-cat="${c.id}" aria-pressed="${ui.cat === c.id}">${c.emoji ? c.emoji + ' ' : ''}${esc(c.name)}</button>`).join('');
+}
+
+function stockInfo(s) {
+  if (s === 0) return ['bad', 'Habis'];
+  if (s < LOW) return ['warn', 'Menipis'];
+  return ['good', 'Aman'];
+}
+
+function render() {
+  renderStats(); renderChart(); renderChips();
+  const rows = filtered();
+  const pages = Math.max(1, Math.ceil(rows.length / PER));
+  ui.page = Math.min(ui.page, pages);
+  const start = (ui.page - 1) * PER;
+  const view = rows.slice(start, start + PER);
+
+  $('#grid').innerHTML = view.length ? view.map((p, i) => {
+    const c = catOf(p.category_id);
+    const [lv, label] = stockInfo(p.stock);
+    return `<article class="box pc" style="--c:${c?.color ?? '#ddd'};animation-delay:${i * 40}ms">
+      <div class="strip"><span class="emo">${c?.emoji ?? '📦'}</span><span class="cn">${esc(cat(p.category_id))}</span><span class="id">#${p.id}</span></div>
+      <div class="pb">
+        <h3>${esc(p.name)}</h3>
+        <div class="price">${rp(p.price)}</div>
+        <p class="sup">🏭 ${esc(sup(p.supplier_id))}</p>
+        <div><div class="sh"><span>Stok</span><span class="${lv}">${p.stock} · ${label}</span></div>
+          <div class="meter ${lv === 'good' ? '' : lv}"><i style="width:${Math.min(100, p.stock * 2)}%"></i></div></div>
+        <div class="qs"><span class="lbl">Ubah cepat</span>
+          <button class="qb" data-dec="${p.id}" aria-label="Kurangi stok ${esc(p.name)}" ${p.stock === 0 ? 'disabled' : ''}>−</button>
+          <button class="qb" data-inc="${p.id}" aria-label="Tambah stok ${esc(p.name)}">+</button></div>
+        <div class="acts"><button class="btn ok" data-edit="${p.id}">✏️ Edit</button><button class="btn d" data-del="${p.id}">🗑️ Hapus</button></div>
+      </div></article>`;
+  }).join('') : `<div class="box empty" style="grid-column:1/-1"><div class="big">🕵️</div><h3>Produk tidak ketemu</h3><p>Coba kata kunci lain, ganti kategori, atau tambah produk baru.</p></div>`;
+
+  $('#count').textContent = rows.length ? `menampilkan ${start + 1}–${start + view.length} dari ${rows.length} produk` : '0 produk';
+  $('#pager').innerHTML = pages > 1
+    ? Array.from({ length: pages }, (_, i) => `<button class="btn ${i + 1 === ui.page ? 'cur' : ''}" data-page="${i + 1}" aria-label="Halaman ${i + 1}">${i + 1}</button>`).join('') : '';
+
+  $('#logs').innerHTML = db.logs.length
+    ? db.logs.map((l) => `<li><span class="t ${l.a}">${l.a}</span><span>${esc(l.d)} <small>· ${l.t}</small></span></li>`).join('')
+    : '<li class="none">Belum ada aktivitas. Coba tambah, edit, atau hapus produk.</li>';
+}
+
+/* ================= Toast ================= */
+let tt;
+function toast(msg, err) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = `show${err ? ' err' : ''}`;
+  clearTimeout(tt); tt = setTimeout(() => { t.className = ''; }, 2400);
+}
+
+/* ================= Dialog ================= */
+const dlg = $('#dlg');
+dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+const opts = (arr, sel) => '<option value="">Pilih…</option>' + arr.map((a) => `<option value="${a.id}" ${a.id === sel ? 'selected' : ''}>${esc(a.name)}</option>`).join('');
+
+function openForm(id) {
+  const p = id ? db.products.find((x) => x.id === id) : { name: '', category_id: '', supplier_id: '', price: '', stock: 0 };
+  dlg.innerHTML = `
+    <form id="f" novalidate>
+      <div class="dh">${id ? '✏️ Edit produk' : '➕ Tambah produk'}</div>
+      <div class="db">
+        <label for="f-name">Nama produk</label>
+        <input class="inp" id="f-name" maxlength="150" value="${esc(p.name)}" autocomplete="off"><div class="er" id="e-name"></div>
+        <div class="f2">
+          <div><label for="f-cat">Kategori</label><select class="inp" id="f-cat">${opts(categories, p.category_id)}</select><div class="er" id="e-cat"></div></div>
+          <div><label for="f-sup">Supplier</label><select class="inp" id="f-sup">${opts(suppliers, p.supplier_id)}</select><div class="er" id="e-sup"></div></div>
+        </div>
+        <div class="f2">
+          <div><label for="f-price">Harga (Rp)</label><input class="inp" id="f-price" type="number" inputmode="numeric" min="0" max="1000000000000" value="${p.price}"><div class="er" id="e-price"></div></div>
+          <div><label for="f-stock">Stok</label><input class="inp" id="f-stock" type="number" inputmode="numeric" min="0" max="1000000" value="${p.stock}"><div class="er" id="e-stock"></div></div>
+        </div>
+        <div class="da"><button type="button" class="btn" id="cancel">Batal</button><button type="submit" class="btn ok">${id ? 'Simpan perubahan' : 'Simpan produk'}</button></div>
+      </div>
+    </form>`;
+  dlg.showModal();
+  $('#f-name').focus();
+  $('#cancel').onclick = () => dlg.close();
+  $('#f').onsubmit = (e) => {
+    e.preventDefault();
+    const name = $('#f-name').value.trim();
+    const c = +$('#f-cat').value, s = +$('#f-sup').value;
+    const price = $('#f-price').value, stock = $('#f-stock').value;
+    const E = {
+      name: !name ? 'Nama produk wajib diisi.' : '',
+      cat: !c ? 'Pilih kategori.' : '',
+      sup: !s ? 'Pilih supplier.' : '',
+      price: (price === '' || !(+price >= 0) || +price > 1e12) ? 'Harga harus angka 0 atau lebih.' : '',
+      stock: (stock === '' || !(+stock >= 0) || !Number.isInteger(+stock) || +stock > 1e6) ? 'Stok harus bilangan bulat 0 atau lebih.' : '',
+    };
+    const ids = { name: 'f-name', cat: 'f-cat', sup: 'f-sup', price: 'f-price', stock: 'f-stock' };
+    let first = null;
+    Object.entries(E).forEach(([k, msg]) => {
+      $(`#e-${k}`).textContent = msg;
+      $(`#${ids[k]}`).setAttribute('aria-invalid', String(!!msg));
+      if (msg && !first) first = ids[k];
+    });
+    if (first) { $(`#${first}`).focus(); return; }
+
+    if (id) {
+      Object.assign(p, { name, category_id: c, supplier_id: s, price: +price, stock: +stock });
+      log('UPDATE', `Produk "${name}" diperbarui`);
+      toast('✅ Produk berhasil diperbarui.');
+    } else {
+      db.products.push({ id: db.nextId++, name, category_id: c, supplier_id: s, price: +price, stock: +stock });
+      log('CREATE', `Produk "${name}" ditambahkan`);
+      toast('✅ Produk berhasil ditambahkan.');
+      ui.sort = 'new'; $('#sort').value = 'new'; ui.page = 1;
+    }
+    persist(); dlg.close(); render();
+  };
+}
+
+function confirmDelete(id) {
+  const p = db.products.find((x) => x.id === id);
+  if (!p) return;
+  dlg.innerHTML = `
+    <div class="dh red">🗑️ Hapus produk?</div>
+    <div class="db"><p>"<b>${esc(p.name)}</b>" akan dihapus dari inventaris dan tidak bisa dikembalikan.</p>
+      <div class="da"><button class="btn" id="cancel" type="button">Batal</button><button class="btn d" id="ok" type="button">Ya, hapus</button></div></div>`;
+  dlg.showModal();
+  $('#cancel').focus();
+  $('#cancel').onclick = () => dlg.close();
+  $('#ok').onclick = () => {
+    db.products = db.products.filter((x) => x.id !== id);
+    log('DELETE', `Produk "${p.name}" dihapus`);
+    dlg.close(); toast('🗑️ Produk berhasil dihapus.'); render();
+  };
+}
+
+function adjustStock(id, delta) {
+  const p = db.products.find((x) => x.id === id);
+  if (!p) return;
+  const next = Math.max(0, p.stock + delta);
+  if (next === p.stock) return;
+  const before = p.stock;
+  p.stock = next;
+  // gabungkan log berturut-turut untuk produk yang sama agar tidak membanjiri
+  const top = db.logs[0];
+  const msg = `Stok "${p.name}" ${before} → ${next}`;
+  if (top && top.a === 'UPDATE' && top.k === id) { top.d = `Stok "${p.name}" ${top.from} → ${next}`; top.t = stamp(); }
+  else db.logs.unshift({ a: 'UPDATE', d: msg, t: stamp(), k: id, from: before });
+  db.logs = db.logs.slice(0, 5);
+  persist(); render();
+}
+
+/* ================= Event ================= */
+$('#q').addEventListener('input', (e) => { ui.q = e.target.value; ui.page = 1; render(); });
+$('#sort').addEventListener('change', (e) => { ui.sort = e.target.value; ui.page = 1; render(); });
+$('#addDesk').addEventListener('click', () => openForm());
+$('#fab').addEventListener('click', () => openForm());
+$('#alert').addEventListener('click', () => {
+  ui.sort = 'stock-asc'; $('#sort').value = 'stock-asc'; ui.cat = 0; ui.q = ''; $('#q').value = ''; ui.page = 1; render();
+  $('#grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('#reset').addEventListener('click', () => {
+  db = fresh(); log('UPDATE', 'Data demo dikembalikan ke kondisi awal');
+  Object.assign(ui, { q: '', cat: 0, sort: 'new', page: 1 }); $('#q').value = ''; $('#sort').value = 'new';
+  toast('✅ Data demo di-reset.'); render();
+});
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-edit],[data-del],[data-page],[data-cat],[data-inc],[data-dec]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.edit) openForm(+d.edit);
+  else if (d.del) confirmDelete(+d.del);
+  else if (d.page) { ui.page = +d.page; render(); $('#grid').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  else if (d.cat !== undefined) { ui.cat = +d.cat; ui.page = 1; render(); }
+  else if (d.inc) adjustStock(+d.inc, 1);
+  else if (d.dec) adjustStock(+d.dec, -1);
+});
+
+/* ================= Tema ================= */
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $('#theme').textContent = t === 'dark' ? '☀️' : '🌙';
+  $('meta[name="theme-color"]').content = t === 'dark' ? '#15131c' : '#ffe066';
+}
+$('#theme').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem(THEME_KEY, next); } catch { /* abaikan */ }
+  applyTheme(next);
+});
+let saved = null;
+try { saved = localStorage.getItem(THEME_KEY); } catch { /* abaikan */ }
+applyTheme(saved ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+
+render();
+</script>
+</body>
+</html>
